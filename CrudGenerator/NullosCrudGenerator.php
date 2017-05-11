@@ -346,9 +346,9 @@ class NullosCrudGenerator
         $tpl = __DIR__ . "/../assets/config/datatable-profiles/auto.tpl.php";
 
         $Table = ucfirst($table);
-
         $headers = $this->quickPdoInfoCache->getColumnNames($table, $db);
         $headers[] = 'action';
+
 
         $model = [
             'model' => [
@@ -460,7 +460,7 @@ class NullosCrudGenerator
          * By default, we will generate the following:
          * - required on every non nullable varchar
          */
-        $datatypes = $this->skinnyTypeUtil->getTypes($db, $table, $this->_useCache);
+        $datatypes = $this->quickPdoInfoCache->getColumnDataTypes($db . '.' . $table, false);
         $fks = $this->quickPdoInfoCache->getForeignKeysInfo($table, $db);
         $nullables = $this->quickPdoInfoCache->getColumnNullabilities($db . '.' . $table);
 
