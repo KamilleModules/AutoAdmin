@@ -231,7 +231,12 @@ class NullosCrudGenerator
         ];
         $string = ArrayToStringTool::toPhpArray($items);
 
-        $data = '<?php' . PHP_EOL;
+
+        $string = str_replace("'/crud?type", "\$uriCrud . '?type", $string);
+
+        $data = '<?php' . PHP_EOL . PHP_EOL;
+        $data .= 'use Kamille\Ling\Z;' . PHP_EOL . PHP_EOL;
+        $data .= '$uriCrud = Z::link("NullosAdmin_crud");' . PHP_EOL . PHP_EOL;
         $data .= '$items = ' . $string . ';' . PHP_EOL . PHP_EOL;
         FileSystemTool::mkfile($f, $data);
     }
