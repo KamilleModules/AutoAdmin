@@ -154,23 +154,26 @@ class NullosCrudGenerator
     //--------------------------------------------
     //
     //--------------------------------------------
-    protected function getPrefixedColumns($db, $table)
+    protected function getPrefixedColumns($db, $table, array &$foreignKeys = [])
     {
         $prefixedColumns = [];
         $foreignKeysInfo = $this->quickPdoInfoCache->getForeignKeysInfo($table, $db);
         $columns = $this->quickPdoInfoCache->getColumnNames($table, $db);
+
         foreach ($columns as $col) {
             if (array_key_exists($col, $foreignKeysInfo)) {
                 $info = $foreignKeysInfo[$col];
                 $prefixedColumns[] = $info[1] . "." . $this->foreignKeyPreferredColumnUtil->getPreferredForeignKey($info[0], $info[1], $this->_useCache);
+                $foreignKeys[] = $table . "." . $col;
 //                $prefixedColumns[] = $this->getForeignKeyPreferredColumn($info[0], $info[1], $info[2], $schema, $tableOnly, $col);
             } else {
                 $prefixedColumns[] = $table . "." . $col;
             }
         }
 
-        // ensuring that all ric fields are present
-        $ric = $this->getRic($db, $table);
+
+        // ensuring that all ric fields are present (for foreign keys that we hide, but will be present)
+        $ric = $this->getRic($db, $table, false);
         $ric = array_map(function ($v) use ($table) {
             return $table . "." . $v;
         }, $ric);
@@ -363,13 +366,15 @@ class NullosCrudGenerator
         $Table = ucfirst($table);
 
 
-        $headers = $this->getPrefixedColumns($db, $table);
+        $hidden = [];
+        $headers = $this->getPrefixedColumns($db, $table, $hidden);
         $headers[] = 'action';
 
 
         $model = [
             'model' => [
                 'headers' => $headers,
+                'hidden' => $hidden,
                 'ric' => $this->getRic($db, $table, true),
                 'actionButtons' => [
                     'addItem' => [
