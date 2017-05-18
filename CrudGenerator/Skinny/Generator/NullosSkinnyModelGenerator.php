@@ -85,6 +85,8 @@ EEE;
                 $uses[] = 'Module\NullosAdmin\FormModel\Control\DropZoneControl';
 
 
+                $targetRelDir = $this->getTargetRelativeDir($profileId, $db, $table, $column);
+
                 //--------------------------------------------
                 // CREATING AN UPLOAD PROFILE
                 //--------------------------------------------
@@ -101,7 +103,7 @@ use Kamille\Ling\Z;
 //  "acceptedFiles" => [
 //      'application/pdf',
 //  ],
-    "targetDir" => \$appDir . "/www/uploads/$profileId",
+    "targetDir" => \$appDir . "/$targetRelDir",
 ];
 EEE;
 
@@ -237,5 +239,10 @@ EEE;
             XLog::error("$key not set with column $db.$table.$column");
         }
         return false;
+    }
+
+
+    protected function getTargetRelativeDir($profileId, $db, $table, $column){
+        return "www/uploads/$profileId";
     }
 }
