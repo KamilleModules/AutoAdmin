@@ -271,7 +271,15 @@ class NullosCrudGenerator
         $Table = ucfirst($table);
 
         list($prefixedColumns, $joins) = $this->getSqlQuery($db, $table);
+
+
+        $prefixedColumns = array_map(function ($v) {
+            return "$v as `$v`";
+        }, $prefixedColumns);
+
+
         $fields = PHP_EOL . implode(',' . PHP_EOL, $prefixedColumns) . PHP_EOL;
+
 
         $q = PHP_EOL . "SELECT" . PHP_EOL;
         $q .= "%s" . PHP_EOL;
@@ -286,6 +294,8 @@ class NullosCrudGenerator
 
         $ric = $this->getRic($db, $table);
         $sRic = ArrayToStringTool::toPhpArray($ric);
+
+
         $module = $this->module;
         $snippets = [];
         $this->generateFormModelValidator($db, $table, $snippets, $uses);
