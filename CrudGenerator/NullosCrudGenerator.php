@@ -45,6 +45,7 @@ class NullosCrudGenerator
      * @var SkinnyModelGeneratorInterface $skinnyModelGenerator
      */
     private $skinnyModelGenerator;
+    private $allowSkinnyModelGeneratorConfiguration;
 
     /**
      * @var QuickPdoInfoCacheUtil $quickPdoInfoCache
@@ -135,6 +136,13 @@ class NullosCrudGenerator
         return $this;
     }
 
+    public function setSkinnyModelGenerator(SkinnyModelGeneratorInterface $generator, $autoConfigure = true)
+    {
+        $this->skinnyModelGenerator = $generator;
+        $this->allowSkinnyModelGeneratorConfiguration = $autoConfigure;
+        return $this;
+    }
+
     public function setQuickPdoInfoCache(QuickPdoInfoCacheUtil $quickPdoInfoCache)
     {
         $this->quickPdoInfoCache = $quickPdoInfoCache;
@@ -150,6 +158,7 @@ class NullosCrudGenerator
             $joins,
         ];
     }
+
 
     //--------------------------------------------
     //
@@ -422,8 +431,14 @@ class NullosCrudGenerator
                 ->setModule($this->module)
                 ->useCache($this->_useCache);
         }
+        $configure = $this->allowSkinnyModelGeneratorConfiguration;
         if (null === $this->skinnyModelGenerator) {
-            $this->skinnyModelGenerator = NullosSkinnyModelGenerator::create()
+            $this->skinnyModelGenerator = NullosSkinnyModelGenerator::create();
+            $configure = true;
+        }
+
+        if (true === $configure) {
+            $this->skinnyModelGenerator
                 ->useCache($this->_useCache)
                 ->setQuickPdoInfoCache($this->quickPdoInfoCache)
                 ->setForeignKeyPreferredColumnUtil($this->foreignKeyPreferredColumnUtil)
