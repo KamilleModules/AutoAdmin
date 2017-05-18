@@ -361,14 +361,16 @@ class NullosCrudGenerator
         $tpl = __DIR__ . "/../assets/config/datatable-profiles/auto.tpl.php";
 
         $Table = ucfirst($table);
-        $headers = $this->quickPdoInfoCache->getColumnNames($table, $db);
+
+
+        $headers = $this->getPrefixedColumns($db, $table);
         $headers[] = 'action';
 
 
         $model = [
             'model' => [
                 'headers' => $headers,
-                'ric' => $this->getRic($db, $table),
+                'ric' => $this->getRic($db, $table, true),
                 'actionButtons' => [
                     'addItem' => [
                         'label' => "Add $Table",
@@ -454,12 +456,17 @@ class NullosCrudGenerator
     //--------------------------------------------
     //
     //--------------------------------------------
-    private function getRic($db, $table)
+    private function getRic($db, $table, $prefixWithTable = false)
     {
         $columnNames = $this->quickPdoInfoCache->getColumnNames($table, $db);
         $primaryKey = $this->quickPdoInfoCache->getPrimaryKey($table, $db);
         if (0 === count($primaryKey)) {
             $primaryKey = $columnNames;
+        }
+        if (true === $prefixWithTable) {
+            $primaryKey = array_map(function ($v) use ($table) {
+                return $table . "." . $v;
+            }, $primaryKey);
         }
         return $primaryKey;
     }
