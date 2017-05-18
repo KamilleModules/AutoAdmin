@@ -25,13 +25,14 @@ class NullosSkinnyTypeUtil extends SkinnyTypeUtil
      */
     private $module;
     private $_useCache;
+    private $cacheDirWasSet;
 
 
     public function __construct()
     {
         parent::__construct();
-        $this->setCacheDir(Z::appDir() . "/store/AutoAdmin/skinny-types/auto");
         $this->_useCache = true;
+        $this->cacheDirWasSet = false;
     }
 
     public function setForeignKeyPreferredColumnUtil(ForeignKeyPreferredColumnUtil $foreignKeyPreferredColumnUtil)
@@ -45,6 +46,13 @@ class NullosSkinnyTypeUtil extends SkinnyTypeUtil
         $this->_useCache = $useCache;
         return $this;
     }
+
+    public function setCacheDir($cacheDir)
+    {
+        $this->cacheDirWasSet = true;
+        return parent::setCacheDir($cacheDir);
+    }
+
 
     public function setModule($module)
     {
@@ -103,6 +111,9 @@ class NullosSkinnyTypeUtil extends SkinnyTypeUtil
     {
         if (null === $this->foreignKeyPreferredColumnUtil) {
             $this->foreignKeyPreferredColumnUtil = NullosForeignKeyPreferredColumnUtil::create();
+        }
+        if (false === $this->cacheDirWasSet) {
+            $this->setCacheDir(Z::appDir() . "/store/" . $this->module . "/skinny-types/auto");
         }
         parent::prepare();
     }
