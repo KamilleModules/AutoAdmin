@@ -24,14 +24,12 @@ class NullosSkinnyTypeUtil extends SkinnyTypeUtil
      * @var string, used to generate params for autocomplete and upload types
      */
     private $module;
-    private $_useCache;
     private $cacheDirWasSet;
 
 
     public function __construct()
     {
         parent::__construct();
-        $this->_useCache = true;
         $this->cacheDirWasSet = false;
     }
 
@@ -41,11 +39,6 @@ class NullosSkinnyTypeUtil extends SkinnyTypeUtil
         return $this;
     }
 
-    public function useCache($useCache)
-    {
-        $this->_useCache = $useCache;
-        return $this;
-    }
 
     public function setCacheDir($cacheDir)
     {
@@ -68,7 +61,7 @@ class NullosSkinnyTypeUtil extends SkinnyTypeUtil
     {
 
         if ('selectForeignKey' === $chosenType) {
-            $preferredCol = $this->foreignKeyPreferredColumnUtil->getPreferredForeignKey($foreignKey[0], $foreignKey[1], $this->_useCache);
+            $preferredCol = $this->foreignKeyPreferredColumnUtil->getPreferredForeignKey($foreignKey[0], $foreignKey[1]);
             if (false !== $preferredCol) {
                 $foreignTable = $foreignKey[0] . "." . $foreignKey[1];
                 $foreignCol = $foreignKey[2];

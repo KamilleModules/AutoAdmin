@@ -54,31 +54,17 @@ class NullosCrudGenerator
 
 
     /**
-     * @var bool, whether or not to use cache when available
-     */
-    private $_useCache;
-
-    /**
      * @var string, name of the module, used by NullosskinnyTypeUtil
      * to generate parameters for autocomplete and upload types.
      */
     private $module;
-
-    /**
-     * @var array, the features to generate
-     */
-    private $features;
+    private $hasNewTable;
 
 
     public function __construct()
     {
-        $this->_useCache = true;
         $this->module = 'AutoAdmin';
-        $this->features = [
-            'menu' => true,
-            'datatable' => true,
-            'prc' => true,
-        ];
+        $this->hasNewTable = false;
     }
 
     public static function create()
@@ -87,33 +73,25 @@ class NullosCrudGenerator
     }
 
 
-    public function generate($database)
+    public function generate($database, array $options = [])
     {
-        $this->prepare();
 
-        if (true === $this->hasFeature('menu')) {
-            $this->debug("generating menu for database for $database");
-            $this->generateMenu($database);
-        }
+        $options = array_replace([
+            'hasNewTable' => true,
+        ], $options);
+
+        $this->hasNewTable = $options['hasNewTable'];
+
+        $this->prepare($database);
+        $this->generateMenu($database);
         $this->generateItems($database);
 
     }
 
-    public function useCache($useCache)
-    {
-        $this->_useCache = $useCache;
-        return $this;
-    }
 
     public function setModule($module)
     {
         $this->module = $module;
-        return $this;
-    }
-
-    public function setFeatures(array $features)
-    {
-        $this->features = $features;
         return $this;
     }
 
@@ -124,11 +102,6 @@ class NullosCrudGenerator
     //--------------------------------------------
     //
     //--------------------------------------------
-    public function setForeignKeyPreferredColumnUtil(ForeignKeyPreferredColumnUtil $foreignKeyPreferredColumnUtil)
-    {
-        $this->foreignKeyPreferredColumnUtil = $foreignKeyPreferredColumnUtil;
-        return $this;
-    }
 
     public function setSkinnyTypeUtil(SkinnyTypeUtil $skinnyTypeUtil)
     {
@@ -143,11 +116,6 @@ class NullosCrudGenerator
         return $this;
     }
 
-    public function setQuickPdoInfoCache(QuickPdoInfoCacheUtil $quickPdoInfoCache)
-    {
-        $this->quickPdoInfoCache = $quickPdoInfoCache;
-        return $this;
-    }
 
     public function getSqlQuery($db, $table)
     {
@@ -167,12 +135,13 @@ class NullosCrudGenerator
     {
         $prefixedColumns = [];
         $foreignKeysInfo = $this->quickPdoInfoCache->getForeignKeysInfo($table, $db);
+
         $columns = $this->quickPdoInfoCache->getColumnNames($table, $db);
 
         foreach ($columns as $col) {
             if (array_key_exists($col, $foreignKeysInfo)) {
                 $info = $foreignKeysInfo[$col];
-                $prefixedColumns[] = $info[1] . "." . $this->foreignKeyPreferredColumnUtil->getPreferredForeignKey($info[0], $info[1], $this->_useCache);
+                $prefixedColumns[] = $info[1] . "." . $this->foreignKeyPreferredColumnUtil->getPreferredForeignKey($info[0], $info[1]);
                 $foreignKeys[] = $table . "." . $col;
 //                $prefixedColumns[] = $this->getForeignKeyPreferredColumn($info[0], $info[1], $info[2], $schema, $tableOnly, $col);
             } else {
@@ -220,6 +189,7 @@ class NullosCrudGenerator
 
     protected function generateMenu($db)
     {
+        $this->debug("generating menu for database for $db");
         $dir = AutoAdminHelper::getGeneratedSideBarMenuPath() . "/auto";
         $f = $dir . "/$db.php";
 
@@ -250,6 +220,7 @@ class NullosCrudGenerator
         $data .= 'use Kamille\Ling\Z;' . PHP_EOL . PHP_EOL;
         $data .= '$uriCrud = Z::link("NullosAdmin_crud");' . PHP_EOL . PHP_EOL;
         $data .= '$items = ' . $string . ';' . PHP_EOL . PHP_EOL;
+        $this->trace("generateMenu: creating file $f");
         FileSystemTool::mkfile($f, $data);
     }
 
@@ -258,23 +229,19 @@ class NullosCrudGenerator
     {
 
         $tables = $this->quickPdoInfoCache->getTables($db);
-
         foreach ($tables as $table) {
 
-            if ($this->hasFeature('datatable')) {
-                $this->debug("generating datatable for $db.$table");
-                $this->generateDataTableProfile($db, $table);
-            }
-            if ($this->hasFeature('prc')) {
-                $this->debug("generating prc for $db.$table");
-                $this->generatePrc($db, $table);
-            }
+
+            $this->generateDataTableProfile($db, $table);
+            $this->generatePrc($db, $table);
+
         }
     }
 
 
     private function generatePrc($db, $table)
     {
+        $this->debug("generating prc for $db.$table");
         $tpl = __DIR__ . "/../assets/class-prc/ExamplePersistentRowCollection.tpl.php";
         $content = file_get_contents($tpl);
         $uses = [];
@@ -364,12 +331,14 @@ class NullosCrudGenerator
 
         $c = str_replace(array_keys($tags), array_values($tags), $content);
         $dst = Z::appDir() . "/class-prc/$module/$Db/Auto/$Table" . "PersistentRowCollection.php";
+        $this->trace("generatePrc: creating file $dst");
         FileSystemTool::mkfile($dst, $c);
     }
 
 
     private function generateDataTableProfile($db, $table)
     {
+        $this->debug("generating datatable profile for $db.$table");
         $tpl = __DIR__ . "/../assets/config/datatable-profiles/auto.tpl.php";
 
         $Table = ucfirst($table);
@@ -377,6 +346,7 @@ class NullosCrudGenerator
 
         $hidden = [];
         $headers = $this->getPrefixedColumns($db, $table, $hidden);
+
         $headers[] = 'action';
 
 
@@ -409,27 +379,49 @@ class NullosCrudGenerator
 
 
         $dst = Z::appDir() . "/config/datatable-profiles/" . $this->module . "/auto/$db/$table.php";
+        $this->trace("generateDataTableProfile: creating file $dst");
         FileSystemTool::mkfile($dst, $c);
     }
 
     //--------------------------------------------
     //
     //--------------------------------------------
-    private function prepare()
+    private function prepare($db)
     {
-        if (null === $this->foreignKeyPreferredColumnUtil) {
-            $this->foreignKeyPreferredColumnUtil = NullosForeignKeyPreferredColumnUtil::create();
+
+
+        $this->quickPdoInfoCache = QuickPdoInfoCacheUtil::create()->cache(true);
+
+        if (true === $this->hasNewTable) {
+            $this->debug("recreating quickPdoInfoCache cache");
+            $this->quickPdoInfoCache->prepareDb($db);
         }
 
-        if (null === $this->quickPdoInfoCache) {
-            $this->quickPdoInfoCache = QuickPdoInfoCacheUtil::create()->cache($this->_useCache);
+        if (null === $this->foreignKeyPreferredColumnUtil) {
+            $this->foreignKeyPreferredColumnUtil = NullosForeignKeyPreferredColumnUtil::create()
+                ->setUseCache(true)
+                ->setOnFileGeneratedCallback(function ($file) {
+                    $this->debug("NullosForeignKeyPreferredColumnUtil: created preferredColumn cache at $file");
+                });
+
+            if (true === $this->hasNewTable) {
+                $this->foreignKeyPreferredColumnUtil->prepareDb($db);
+            }
+
         }
+
         if (null === $this->skinnyTypeUtil) {
             $this->skinnyTypeUtil = NullosSkinnyTypeUtil::create()
+                ->setOnTypesGeneratedCb(function ($file) {
+                    $this->debug("NullosSkinnyTypeUtil: created skinnyTypes cache at $file");
+                })
                 ->setQuickPdoInfoCache($this->quickPdoInfoCache)
                 ->setForeignKeyPreferredColumnUtil($this->foreignKeyPreferredColumnUtil)
-                ->setModule($this->module)
-                ->useCache($this->_useCache);
+                ->setModule($this->module);
+
+            if (true === $this->hasNewTable) {
+                $this->skinnyTypeUtil->prepareDb($db);
+            }
         }
         $configure = $this->allowSkinnyModelGeneratorConfiguration;
         if (null === $this->skinnyModelGenerator) {
@@ -439,7 +431,6 @@ class NullosCrudGenerator
 
         if (true === $configure) {
             $this->skinnyModelGenerator
-                ->useCache($this->_useCache)
                 ->setQuickPdoInfoCache($this->quickPdoInfoCache)
                 ->setForeignKeyPreferredColumnUtil($this->foreignKeyPreferredColumnUtil)
                 ->setSkinnyTypeUtil($this->skinnyTypeUtil);
@@ -459,6 +450,12 @@ class NullosCrudGenerator
     private function debug($msg)
     {
         $this->log('debug', $msg);
+    }
+
+
+    private function trace($msg)
+    {
+        $this->log('trace', $msg);
     }
 
     private function error($msg)

@@ -14,6 +14,4 @@ class NullosForeignKeyPreferredColumnUtil extends ForeignKeyPreferredColumnUtil
         parent::__construct();
         $this->setCacheDir(Z::appDir() . "/store/AutoAdmin/foreignKeyPreferredColumns");
     }
-
-
 }
